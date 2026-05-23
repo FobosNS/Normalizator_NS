@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Нормализатор данных "АНАЛ"</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+        :root {
+            --bg-primary: #0f0f1a;
+            --bg-secondary: #1a1a2e;
+            --bg-card: #16213e;
+            --bg-input: #0f3460;
+            --accent-blue: #4fc3f7;
+            --accent-purple: #bb86fc;
+            --accent-green: #66bb6a;
+            --accent-red: #ef5350;
+            --accent-orange: #ffa726;
+            --text-primary: #e0e0e0;
+            --text-secondary: #9e9e9e;
+            --text-bright: #ffffff;
+            --border-color: #2a2a4a;
+            --shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            --shadow-glow-blue: 0 0 20px rgba(79, 195, 247, 0.15);
+            --shadow-glow-purple: 0 0 20px rgba(187, 134, 252, 0.15);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: ''; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(ellipse at 20% 50%, rgba(79, 195, 247, 0.05) 0%, transparent 50%),
+                        radial-gradient(ellipse at 80% 20%, rgba(187, 134, 252, 0.05) 0%, transparent 50%),
+                        radial-gradient(ellipse at 50% 80%, rgba(102, 187, 106, 0.03) 0%, transparent 50%);
+            pointer-events: none; z-index: 0;
+        }
+
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; position: relative; z-index: 1; }
+
+        .header { text-align: center; padding: 40px 0 30px; }
+        .header h1 {
+            font-size: 2.2rem; font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+            margin-bottom: 8px; letter-spacing: -0.5px;
+        }
+        .header p { color: var(--text-secondary); font-size: 1rem; font-weight: 300; }
+
+        .tabs { display: flex; justify-content: center; gap: 8px; margin-bottom: 30px; flex-wrap: wrap; }
+        .tab-btn {
+            padding: 12px 28px; border: 1px solid var(--border-color); background: var(--bg-secondary);
+            color: var(--text-secondary); border-radius: 12px; cursor: pointer; font-family: 'Inter', sans-serif;
+            font-size: 0.95rem; font-weight: 500; transition: all 0.3s ease; position: relative; overflow: hidden;
+        }
+        .tab-btn:hover { border-color: var(--accent-blue); color: var(--text-primary); transform: translateY(-1px); }
+        .tab-btn.active { border-color: transparent; color: var(--text-bright); box-shadow: var(--shadow-glow-blue); }
+        .tab-btn::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple)); opacity: 0; transition: opacity 0.3s ease; }
+        .tab-btn.active::before { opacity: 1; }
+        .tab-btn span { position: relative; z-index: 1; }
+        .tab-icon { margin-right: 8px; }
+
+        .panel { display: none; animation: fadeIn 0.4s ease; }
+        .panel.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .card {
+            background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px;
+            padding: 24px; margin-bottom: 20px; box-shadow: var(--shadow); transition: all 0.3s ease;
+        }
+        .card:hover { border-color: rgba(79, 195, 247, 0.2); }
+        .card-title { font-size: 1.1rem; font-weight: 600; margin-bottom: 6px; display: flex; align-items: center; gap: 10px; }
+        .card-title .icon { font-size: 1.3rem; }
+        .card-subtitle { font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 16px; line-height: 1.5; }
+
+        textarea {
+            width: 100%; min-height: 180px; background: var(--bg-input); border: 1px solid var(--border-color);
+            border-radius: 12px; color: var(--text-primary); font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 0.9rem; padding: 16px; resize: vertical; transition: border-color 0.3s ease, box-shadow 0.3s ease;
+            line-height: 1.7;
+        }
+        textarea:focus { outline: none; border-color: var(--accent-blue); box-shadow: var(--shadow-glow-blue); }
+        textarea::placeholder { color: var(--text-secondary); font-family: 'Inter', sans-serif; opacity: 0.6; }
+
+        .btn-row { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
+        .btn {
+            padding: 12px 24px; border: none; border-radius: 10px; cursor: pointer;
+            font-family: 'Inter', sans-serif; font-size: 0.9rem; font-weight: 600;
+            transition: all 0.3s ease; display: inline-flex; align-items: center; gap: 8px;
+        }
+        .btn:active { transform: scale(0.97); }
+        .btn-primary { background: linear-gradient(135deg, var(--accent-blue), #0288d1); color: white; box-shadow: 0 4px 15px rgba(79, 195, 247, 0.3); }
+        .btn-primary:hover { box-shadow: 0 6px 25px rgba(79, 195, 247, 0.4); transform: translateY(-1px); }
+        .btn-secondary { background: var(--bg-secondary); color: var(--text-secondary); border: 1px solid var(--border-color); }
+        .btn-secondary:hover { color: var(--text-primary); border-color: var(--accent-purple); }
+        .btn-copy { background: linear-gradient(135deg, var(--accent-green), #388e3c); color: white; box-shadow: 0 4px 15px rgba(102, 187, 106, 0.3); }
+        .btn-copy:hover { box-shadow: 0 6px 25px rgba(102, 187, 106, 0.4); transform: translateY(-1px); }
+        .btn-clear { background: transparent; color: var(--accent-red); border: 1px solid rgba(239, 83, 80, 0.3); }
+        .btn-clear:hover { background: rgba(239, 83, 80, 0.1); }
+        .btn-toggle { 
+            background: var(--bg-input); color: var(--text-secondary); border: 1px solid var(--border-color); 
+            padding: 6px 12px; font-size: 0.8rem; border-radius: 6px;
+        }
+        .btn-toggle:hover { color: var(--text-primary); border-color: var(--accent-blue); }
+        .btn-toggle.active { background: rgba(79, 195, 247, 0.15); color: var(--accent-blue); border-color: var(--accent-blue); }
+
+        .stats-bar { display: flex; gap: 16px; margin-top: 16px; flex-wrap: wrap; }
+        .stat-item { background: var(--bg-input); border-radius: 10px; padding: 10px 16px; display: flex; align-items: center; gap: 8px; font-size: 0.85rem; }
+        .stat-item .label { color: var(--text-secondary); }
+        .stat-item .value { font-weight: 700; font-size: 1rem; }
+        .stat-item .value.blue { color: var(--accent-blue); }
+        .stat-item .value.green { color: var(--accent-green); }
+        .stat-item .value.red { color: var(--accent-red); }
+        .stat-item .value.orange { color: var(--accent-orange); }
+
+        .result-area { margin-top: 20px; }
+        .result-area textarea { background: rgba(15, 52, 96, 0.5); }
+
+        .imei-result-item {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 10px 14px; background: var(--bg-input); border-radius: 8px; margin-bottom: 6px;
+            font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace; font-size: 0.9rem;
+            border-left: 3px solid transparent; transition: all 0.2s ease;
+        }
+        .imei-result-item:hover { background: rgba(15, 52, 96, 0.8); }
+        .imei-result-item.valid { border-left-color: var(--accent-green); }
+        .imei-result-item.invalid { border-left-color: var(--accent-red); }
+        .imei-result-item .imei-number { flex: 1; letter-spacing: 1.5px; }
+        .imei-result-item .imei-status {
+            font-family: 'Inter', sans-serif; font-size: 0.8rem; font-weight: 600;
+            padding: 4px 10px; border-radius: 6px; white-space: nowrap; margin-left: 10px;
+        }
+        .imei-status.valid-badge { background: rgba(102, 187, 106, 0.15); color: var(--accent-green); }
+        .imei-status.invalid-badge { background: rgba(239, 83, 80, 0.15); color: var(--accent-red); }
+        .imei-status.fixed-badge { background: rgba(255, 167, 38, 0.15); color: var(--accent-orange); }
+
+        .imei-list { max-height: 400px; overflow-y: auto; padding-right: 4px; }
+        .imei-list::-webkit-scrollbar { width: 6px; }
+        .imei-list::-webkit-scrollbar-track { background: transparent; }
+        .imei-list::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
+        .imei-list::-webkit-scrollbar-thumb:hover { background: var(--accent-blue); }
+
+        .phone-tags-header { 
+            display: flex; align-items: center; justify-content: space-between; 
+            margin-bottom: 10px; flex-wrap: wrap; gap: 8px; 
+        }
+        .phone-tags-header .title { font-size: 0.95rem; display: flex; align-items: center; gap: 6px; }
+        
+        .phone-tags { 
+            display: flex; flex-wrap: wrap; gap: 4px; padding: 4px; 
+            transition: max-height 0.3s ease, opacity 0.3s ease;
+            overflow: hidden;
+        }
+        .phone-tags.collapsed { 
+            flex-wrap: nowrap; overflow-x: auto; max-height: 40px; 
+            padding-bottom: 8px; scrollbar-width: none;
+        }
+        .phone-tags.collapsed::-webkit-scrollbar { display: none; }
+        
+        .phone-result-item {
+            display: inline-flex; align-items: center; padding: 6px 14px; background: var(--bg-input);
+            border-radius: 8px; margin: 2px; font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+            font-size: 0.88rem; border: 1px solid var(--border-color); transition: all 0.2s ease; cursor: default;
+            flex-shrink: 0;
+        }
+        .phone-tags.collapsed .phone-result-item { margin: 2px 4px 2px 2px; }
+        .phone-result-item:hover { border-color: var(--accent-blue); background: rgba(15, 52, 96, 0.8); }
+        .phone-result-item .flag { margin-right: 6px; font-size: 1rem; }
+        .phone-result-item.ua { border-left: 3px solid var(--accent-blue); }
+        .phone-result-item.ru { border-left: 3px solid var(--accent-red); }
+        .phone-result-item.unknown { border-left: 3px solid var(--accent-orange); }
+
+        .toast {
+            position: fixed; bottom: 30px; right: 30px; background: var(--bg-card);
+            border: 1px solid var(--accent-green); color: var(--text-bright); padding: 14px 24px;
+            border-radius: 12px; font-size: 0.9rem; font-weight: 500;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.4); transform: translateY(100px); opacity: 0;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index: 1000;
+            display: flex; align-items: center; gap: 8px;
+        }
+        .toast.show { transform: translateY(0); opacity: 1; }
+
+        .info-badges { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+        .info-badge { padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.3px; }
+        .info-badge.ua-badge { background: rgba(79, 195, 247, 0.12); color: var(--accent-blue); border: 1px solid rgba(79, 195, 247, 0.2); }
+        .info-badge.ru-badge { background: rgba(239, 83, 80, 0.12); color: var(--accent-red); border: 1px solid rgba(239, 83, 80, 0.2); }
+
+        .footer { text-align: center; padding: 30px 0; color: var(--text-secondary); font-size: 0.8rem; }
+
+        .checkbox-group { display: flex; align-items: center; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+        .checkbox-group label { font-size: 0.85rem; color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; gap: 6px; }
+        .checkbox-group input[type="checkbox"] { accent-color: var(--accent-blue); width: 16px; height: 16px; cursor: pointer; }
+
+        @media (max-width: 768px) {
+            .container { padding: 12px; }
+            .header h1 { font-size: 1.6rem; }
+            .card { padding: 16px; }
+            .tab-btn { padding: 10px 18px; font-size: 0.85rem; }
+            .btn { padding: 10px 18px; font-size: 0.85rem; }
+            .stats-bar { gap: 8px; }
+            .stat-item { padding: 8px 12px; font-size: 0.8rem; }
+            .phone-tags-header { flex-direction: column; align-items: flex-start; gap: 6px; }
+        }
+
+        @keyframes countUp { from { transform: scale(0.5); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        .stat-item .value { animation: countUp 0.3s ease; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>📋 Нормализатор данных "АНАЛ"</h1>
+            <p>Нормализация телефонов и IMEI в один клик</p>
+        </header>
+
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('phone')" id="tab-phone">
+                <span><span class="tab-icon">📱</span>Нормализатор номеров</span>
+            </button>
+            <button class="tab-btn" onclick="switchTab('imei')" id="tab-imei">
+                <span><span class="tab-icon">📟</span>Нормализатор IMEI</span>
+            </button>
+        </div>
+
+        <!-- PHONE PANEL -->
+        <div class="panel active" id="panel-phone">
+            <div class="card">
+                <div class="card-title"><span class="icon">📥</span> Входные данные</div>
+                <div class="card-subtitle">Вставьте список номеров. На выходе — только цифры</div>
+                <div class="info-badges">
+                    <span class="info-badge ua-badge">UA → 380XXXXXXXXX</span>
+                    <span class="info-badge ru-badge">🇷🇺 ПИДОРСКИЙ → 7XXXXXXXXXX</span>
+                </div>
+                <textarea id="phoneInput" placeholder="Примеры:&#10;+38 (067) 123-45-67&#10;8(916)1234567&#10;Текст 380501234567 текст&#10;+7 999 123 45 67, +380631234567&#10;8-067-123-45-67"></textarea>
+
+                <div class="checkbox-group">
+                    <label><input type="checkbox" id="phoneRemoveDupes" checked> Убрать дубликаты</label>
+                    <label><input type="checkbox" id="phoneSortNumbers" checked> Сортировать</label>
+                </div>
+
+                <div class="btn-row">
+                    <button class="btn btn-primary" onclick="normalizePhones()">⚡ Нормализовать</button>
+                    <button class="btn btn-clear" onclick="clearField('phoneInput')">🗑️ Очистить</button>
+                </div>
+            </div>
+
+            <div class="card result-area" id="phoneResultCard" style="display:none;">
+                <div class="card-title"><span class="icon">📤</span> Результат</div>
+                <div class="stats-bar" id="phoneStats"></div>
+                
+                <div style="margin-top:16px;">
+                    <div class="phone-tags-header">
+                        <div class="title">🏷️ Теги:</div>
+                        <button class="btn btn-toggle" id="toggleTagsBtn" onclick="toggleTags()">↕️ Развернуть</button>
+                    </div>
+                    <div class="phone-tags collapsed" id="phoneTags"></div>
+                </div>
+
+                <div class="btn-row" style="margin-top:16px;">
+                    <button class="btn btn-copy" onclick="copyResult('phoneResult')">📋 Копировать</button>
+                    <button class="btn btn-secondary" onclick="downloadResult('phoneResult', 'phones.txt')">💾 Скачать</button>
+                </div>
+                <textarea id="phoneResult" readonly style="margin-top:16px; min-height:120px;"></textarea>
+            </div>
+        </div>
+
+        <!-- IMEI PANEL -->
+        <div class="panel" id="panel-imei">
+            <div class="card">
+                <div class="card-title"><span class="icon">📥</span> Входные данные</div>
+                <div class="card-subtitle">IMEI (14-15 цифр). Алгоритм Луна проверит/исправит контрольную цифру по стандарту GSMA.</div>
+                <textarea id="imeiInput" placeholder="Примеры:&#10;353456789012345&#10;49015420323751 8&#10;86012304567890 1&#10;35-209900-176148 1"></textarea>
+
+                <div class="checkbox-group">
+                    <label><input type="checkbox" id="imeiRemoveDupes" checked> Убрать дубликаты</label>
+                    <label><input type="checkbox" id="imeiFixCheckDigit"> Исправить контрольную цифру (Если IMEI из 15 цифр)</label>
+                </div>
+
+                <div class="btn-row">
+                    <button class="btn btn-primary" onclick="normalizeIMEI()">⚡ Проверить IMEI</button>
+                    <button class="btn btn-clear" onclick="clearField('imeiInput')">🗑️ Очистить</button>
+                </div>
+            </div>
+
+            <div class="card result-area" id="imeiResultCard" style="display:none;">
+                <div class="card-title"><span class="icon">📤</span> Результат проверки</div>
+                <div class="stats-bar" id="imeiStats"></div>
+                <div style="margin-top:16px;"><div class="imei-list" id="imeiList"></div></div>
+                <div class="btn-row" style="margin-top:16px;">
+                    <button class="btn btn-copy" onclick="copyResult('imeiValidResult')">📋 Копировать валидные</button>
+                    <button class="btn btn-secondary" onclick="downloadResult('imeiValidResult', 'valid_imei.txt')">💾 Скачать валидные</button>
+                </div>
+                <textarea id="imeiValidResult" readonly style="margin-top:16px; min-height:100px;"></textarea>
+            </div>
+        </div>
+
+        <footer class="footer">Нормализатор данных By FobosNS &copy; 2026</footer>
+    </div>
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // ==================== TAB SWITCHING ====================
+        function switchTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+            document.getElementById('tab-' + tab).classList.add('active');
+            document.getElementById('panel-' + tab).classList.add('active');
+        }
+
+        // ==================== TOAST ====================
+        function showToast(message, duration = 2500) {
+            const toast = document.getElementById('toast');
+            toast.innerHTML = message;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), duration);
+        }
+
+        // ==================== CLEAR ====================
+        function clearField(id) {
+            document.getElementById(id).value = '';
+            if (id === 'phoneInput') document.getElementById('phoneResultCard').style.display = 'none';
+            if (id === 'imeiInput') document.getElementById('imeiResultCard').style.display = 'none';
+        }
+
+        // ==================== COPY ====================
+        function copyResult(id) {
+            const textarea = document.getElementById(id);
+            navigator.clipboard.writeText(textarea.value).then(() => {
+                showToast('✅ Скопировано в буфер обмена');
+            }).catch(() => {
+                textarea.select(); document.execCommand('copy'); showToast('✅ Скопировано');
+            });
+        }
+
+        // ==================== DOWNLOAD ====================
+        function downloadResult(id, filename) {
+            const text = document.getElementById(id).value;
+            if (!text.trim()) { showToast('⚠️ Нечего скачивать'); return; }
+            const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob); a.download = filename; a.click();
+            URL.revokeObjectURL(a.href);
+            showToast('💾 Файл скачан');
+        }
+
+        // ==================== TOGGLE TAGS ====================
+        let tagsExpanded = false;
+        function toggleTags() {
+            const tagsContainer = document.getElementById('phoneTags');
+            const toggleBtn = document.getElementById('toggleTagsBtn');
+            tagsExpanded = !tagsExpanded;
+            
+            if (tagsExpanded) {
+                tagsContainer.classList.remove('collapsed');
+                toggleBtn.textContent = '↕️ Свернуть';
+                toggleBtn.classList.add('active');
+            } else {
+                tagsContainer.classList.add('collapsed');
+                toggleBtn.textContent = '↕️ Развернуть';
+                toggleBtn.classList.remove('active');
+            }
+        }
+
+        // ==================== PHONE NORMALIZATION ====================
+        function normalizePhones() {
+            const raw = document.getElementById('phoneInput').value;
+            if (!raw.trim()) { showToast('⚠️ Введите данные для обработки'); return; }
+
+            const lines = raw.split(/[\n\r,;|]+/).map(l => l.trim()).filter(l => l);
+            let phones = [];
+
+            lines.forEach(line => {
+                let digits = line.replace(/[^\d]/g, '');
+                if (!digits) return;
+                let normalized = normalizePhone(digits);
+                if (normalized) phones.push(normalized);
+            });
+
+            if (document.getElementById('phoneRemoveDupes').checked) {
+                phones = [...new Set(phones)];
+            }
+            if (document.getElementById('phoneSortNumbers').checked) {
+                phones.sort();
+            }
+
+            let uaPhones = phones.filter(p => p.startsWith('380') && p.length === 12);
+            let ruPhones = phones.filter(p => p.startsWith('7') && p.length === 11);
+            let otherPhones = phones.filter(p => !uaPhones.includes(p) && !ruPhones.includes(p));
+
+            document.getElementById('phoneResultCard').style.display = 'block';
+            document.getElementById('phoneStats').innerHTML = `
+                <div class="stat-item"><span class="label">Всего:</span><span class="value blue">${phones.length}</span></div>
+                <div class="stat-item"><span class="label">🇺🇦 UA:</span><span class="value" style="color:var(--accent-blue)">${uaPhones.length}</span></div>
+                <div class="stat-item"><span class="label">🇷🇺 ПИДОРСКИЙ:</span><span class="value" style="color:var(--accent-red)">${ruPhones.length}</span></div>
+                ${otherPhones.length > 0 ? `<div class="stat-item"><span class="label">🌍 Другие:</span><span class="value orange">${otherPhones.length}</span></div>` : ''}
+            `;
+
+            // Генерация тегов
+            let tagsHtml = '';
+            uaPhones.forEach(p => tagsHtml += `<div class="phone-result-item ua"><span class="flag">🇺🇦</span>${p}</div>`);
+            ruPhones.forEach(p => tagsHtml += `<div class="phone-result-item ru"><span class="flag">🇷🇺</span>${p}</div>`);
+            otherPhones.forEach(p => tagsHtml += `<div class="phone-result-item unknown"><span class="flag">🌍</span>${p}</div>`);
+            
+            const tagsContainer = document.getElementById('phoneTags');
+            tagsContainer.innerHTML = tagsHtml;
+            
+            // Сброс состояния тегов при новой обработке
+            if (tagsExpanded) toggleTags();
+
+            document.getElementById('phoneResult').value = phones.join('\n');
+            showToast(`✅ Нормализовано: ${phones.length} номеров`);
+        }
+
+        function normalizePhone(digits) {
+            // === УКРАИНА ===
+            if (digits.length === 12 && digits.startsWith('380')) return digits;
+            if (digits.length === 13 && digits.startsWith('380')) return digits.slice(0, 12);
+            if (digits.length === 10 && digits.startsWith('0')) return '380' + digits.slice(1);
+            if (digits.length === 12 && digits.startsWith('0380')) return '380' + digits.slice(4);
+
+            // === РОССИЯ ===
+            if (digits.length === 11 && (digits[0] === '7' || digits[0] === '8')) {
+                return '7' + digits.slice(1);
+            }
+            if (digits.length === 10 && digits[0] === '9') {
+                return '7' + digits;
+            }
+
+            return null;
+        }
+
+        // ==================== IMEI NORMALIZATION (LUHN GSMA) ====================
+        function normalizeIMEI() {
+            const raw = document.getElementById('imeiInput').value;
+            if (!raw.trim()) { showToast('⚠️ Введите IMEI для проверки'); return; }
+
+            const lines = raw.split(/[\n\r,;|]+/);
+            let results = [];
+            let seen = new Set();
+
+            lines.forEach(line => {
+                line = line.trim(); if (!line) return;
+                let digits = line.replace(/\D/g, '');
+
+                if (digits.length < 14 || digits.length > 16) {
+                    if (digits.length >= 14) digits = digits.substring(0, 15);
+                    else { results.push({ imei: digits, status: 'short', valid: false }); return; }
+                }
+
+                if (digits.length === 15) {
+                    let isValid = luhnCheck(digits);
+                    let key = digits;
+                    if (document.getElementById('imeiRemoveDupes').checked && seen.has(key)) return;
+
+                    if (isValid) {
+                        seen.add(key);
+                        results.push({ imei: digits, status: 'valid', valid: true });
+                    } else {
+                        if (document.getElementById('imeiFixCheckDigit').checked) {
+                            let fixed = luhnFix(digits);
+                            seen.add(fixed);
+                            results.push({ imei: fixed, status: 'fixed', valid: true, original: digits });
+                        } else {
+                            seen.add(key);
+                            results.push({ imei: digits, status: 'invalid', valid: false });
+                        }
+                    }
+                } else if (digits.length === 14) {
+                    let checkDigit = calcLuhnCheckDigit(digits);
+                    let fullImei = digits + checkDigit;
+                    let key = fullImei;
+                    if (document.getElementById('imeiRemoveDupes').checked && seen.has(key)) return;
+                    seen.add(key);
+                    results.push({ imei: fullImei, status: 'fixed', valid: true, original: digits });
+                } else if (digits.length === 16) {
+                    let trimmed = digits.substring(0, 15);
+                    let isValid = luhnCheck(trimmed);
+                    let key = trimmed;
+                    if (document.getElementById('imeiRemoveDupes').checked && seen.has(key)) return;
+                    seen.add(key);
+                    results.push({ imei: trimmed, status: isValid ? 'valid' : 'invalid', valid: isValid });
+                }
+            });
+
+            document.getElementById('imeiResultCard').style.display = 'block';
+            let validCount = results.filter(r => r.valid).length;
+            let invalidCount = results.filter(r => !r.valid).length;
+            let fixedCount = results.filter(r => r.status === 'fixed').length;
+
+            document.getElementById('imeiStats').innerHTML = `
+                <div class="stat-item"><span class="label">Всего:</span><span class="value blue">${results.length}</span></div>
+                <div class="stat-item"><span class="label">✅ Валидные:</span><span class="value green">${validCount}</span></div>
+                ${invalidCount > 0 ? `<div class="stat-item"><span class="label">❌ Невалидные:</span><span class="value red">${invalidCount}</span></div>` : ''}
+                ${fixedCount > 0 ? `<div class="stat-item"><span class="label">🔧 Исправлено:</span><span class="value orange">${fixedCount}</span></div>` : ''}
+            `;
+
+            let listHtml = '';
+            results.forEach(r => {
+                let statusClass = r.valid ? 'valid' : 'invalid';
+                let badgeClass = r.status === 'valid' ? 'valid-badge' :
+                                 r.status === 'fixed' ? 'fixed-badge' : 'invalid-badge';
+                let badgeText = r.status === 'valid' ? '✓ Валидный' :
+                                r.status === 'fixed' ? '🔧 Исправлен' : '✗ Невалидный';
+                let imeiDisplay = r.imei;
+                listHtml += `
+                    <div class="imei-result-item ${statusClass}">
+                        <span class="imei-number">${formatIMEI(imeiDisplay)}</span>
+                        <span class="imei-status ${badgeClass}">${badgeText}</span>
+                    </div>
+                `;
+            });
+            document.getElementById('imeiList').innerHTML = listHtml;
+
+            let validImeis = results.filter(r => r.valid).map(r => r.imei);
+            document.getElementById('imeiValidResult').value = validImeis.join('\n');
+            showToast(`✅ Проверено: ${results.length} IMEI`);
+        }
+
+        function luhnCheck(imei) {
+            if (imei.length !== 15) return false;
+            let sum = 0;
+            for (let i = 0; i < 14; i++) {
+                let digit = parseInt(imei[i]);
+                if (i % 2 !== 0) {
+                    digit *= 2;
+                    if (digit > 9) digit -= 9;
+                }
+                sum += digit;
+            }
+            let checkDigit = parseInt(imei[14]);
+            return (sum + checkDigit) % 10 === 0;
+        }
+
+        function calcLuhnCheckDigit(imei14) {
+            let sum = 0;
+            for (let i = 0; i < 14; i++) {
+                let digit = parseInt(imei14[i]);
+                if (i % 2 !== 0) {
+                    digit *= 2;
+                    if (digit > 9) digit -= 9;
+                }
+                sum += digit;
+            }
+            return (10 - (sum % 10)) % 10;
+        }
+
+        function luhnFix(imei15) {
+            let prefix = imei15.substring(0, 14);
+            let checkDigit = calcLuhnCheckDigit(prefix);
+            return prefix + checkDigit;
+        }
+
+        function formatIMEI(imei) {
+            if (imei.length === 15) {
+                return imei.substring(0, 2) + '-' + imei.substring(2, 8) + '-' + imei.substring(8, 14) + ' ' + imei[14];
+            }
+            return imei;
+        }
+    </script>
+</body>
+</html>
