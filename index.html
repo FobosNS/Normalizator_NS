@@ -371,54 +371,62 @@
         }
 
         // ==================== PHONE NORMALIZATION ====================
-        function normalizePhones() {
-            const raw = document.getElementById('phoneInput').value;
-            if (!raw.trim()) { showToast('⚠️ Введите данные для обработки'); return; }
+function normalizePhones() {
+    const raw = document.getElementById('phoneInput').value;
+    if (!raw.trim()) { showToast('⚠️ Введите данные для обработки'); return; }
 
-            const lines = raw.split(/[\n\r,;|]+/).map(l => l.trim()).filter(l => l);
-            let phones = [];
+    let phones = [];
 
-            lines.forEach(line => {
-                let digits = line.replace(/[^\d]/g, '');
-                if (!digits) return;
-                let normalized = normalizePhone(digits);
-                if (normalized) phones.push(normalized);
-            });
+    // Разбиваем текст по всем символам, которые НЕ могут быть частью номера
+    // Это автоматически отсекает лишний текст, цифры до/после и оставляет только телефонные блоки
+    const candidates = raw.split(/[^+\d\s\-\(\)]+/);
 
-            if (document.getElementById('phoneRemoveDupes').checked) {
-                phones = [...new Set(phones)];
-            }
-            if (document.getElementById('phoneSortNumbers').checked) {
-                phones.sort();
-            }
+    candidates.forEach(token => {
+        token = token.trim();
+        if (!token) return;
+        
+        // Оставляем только цифры
+        let digits = token.replace(/[^\d]/g, '');
+        
+        // Фильтр по длине (реальные UA/RU номера: 10-13 цифр)
+        if (digits.length < 10 || digits.length > 13) return;
+        
+        let normalized = normalizePhone(digits);
+        if (normalized) phones.push(normalized);
+    });
 
-            let uaPhones = phones.filter(p => p.startsWith('380') && p.length === 12);
-            let ruPhones = phones.filter(p => p.startsWith('7') && p.length === 11);
-            let otherPhones = phones.filter(p => !uaPhones.includes(p) && !ruPhones.includes(p));
+    // Убираем дубликаты и сортируем
+    if (document.getElementById('phoneRemoveDupes').checked) phones = [...new Set(phones)];
+    if (document.getElementById('phoneSortNumbers').checked) phones.sort();
 
-            document.getElementById('phoneResultCard').style.display = 'block';
-            document.getElementById('phoneStats').innerHTML = `
-                <div class="stat-item"><span class="label">Всего:</span><span class="value blue">${phones.length}</span></div>
-                <div class="stat-item"><span class="label">🇺🇦 UA:</span><span class="value" style="color:var(--accent-blue)">${uaPhones.length}</span></div>
-                <div class="stat-item"><span class="label">🇷🇺 ПИДОРСКИЙ:</span><span class="value" style="color:var(--accent-red)">${ruPhones.length}</span></div>
-                ${otherPhones.length > 0 ? `<div class="stat-item"><span class="label">🌍 Другие:</span><span class="value orange">${otherPhones.length}</span></div>` : ''}
-            `;
+    // Категоризация (БЕЗ знака +)
+    let uaPhones = phones.filter(p => p.startsWith('380') && p.length === 12);
+    let ruPhones = phones.filter(p => p.startsWith('7') && p.length === 11);
+    let otherPhones = phones.filter(p => !uaPhones.includes(p) && !ruPhones.includes(p));
 
-            // Генерация тегов
-            let tagsHtml = '';
-            uaPhones.forEach(p => tagsHtml += `<div class="phone-result-item ua"><span class="flag">🇺🇦</span>${p}</div>`);
-            ruPhones.forEach(p => tagsHtml += `<div class="phone-result-item ru"><span class="flag">🇷🇺</span>${p}</div>`);
-            otherPhones.forEach(p => tagsHtml += `<div class="phone-result-item unknown"><span class="flag">🌍</span>${p}</div>`);
-            
-            const tagsContainer = document.getElementById('phoneTags');
-            tagsContainer.innerHTML = tagsHtml;
-            
-            // Сброс состояния тегов при новой обработке
-            if (tagsExpanded) toggleTags();
+    document.getElementById('phoneResultCard').style.display = 'block';
+    document.getElementById('phoneStats').innerHTML = `
+        <div class="stat-item"><span class="label">Всего:</span><span class="value blue">${phones.length}</span></div>
+        <div class="stat-item"><span class="label">🇺🇦 UA:</span><span class="value" style="color:var(--accent-blue)">${uaPhones.length}</span></div>
+        <div class="stat-item"><span class="label">🇷🇺 ПИДОРСКИЙ:</span><span class="value" style="color:var(--accent-red)">${ruPhones.length}</span></div>
+        ${otherPhones.length > 0 ? `<div class="stat-item"><span class="label">🌍 Другие:</span><span class="value orange">${otherPhones.length}</span></div>` : ''}
+    `;
 
-            document.getElementById('phoneResult').value = phones.join('\n');
-            showToast(`✅ Нормализовано: ${phones.length} номеров`);
-        }
+    // Генерация тегов
+    let tagsHtml = '';
+    uaPhones.forEach(p => tagsHtml += `<div class="phone-result-item ua"><span class="flag">🇺🇦</span>${p}</div>`);
+    ruPhones.forEach(p => tagsHtml += `<div class="phone-result-item ru"><span class="flag">🇷🇺</span>${p}</div>`);
+    otherPhones.forEach(p => tagsHtml += `<div class="phone-result-item unknown"><span class="flag">🌍</span>${p}</div>`);
+    
+    const tagsContainer = document.getElementById('phoneTags');
+    tagsContainer.innerHTML = tagsHtml;
+    
+    // При новой обработке сбрасываем в свёрнутое состояние
+    if (tagsExpanded) toggleTags();
+
+    document.getElementById('phoneResult').value = phones.join('\n');
+    showToast(`✅ Нормализовано: ${phones.length} номеров`);
+}
 
         function normalizePhone(digits) {
             // === УКРАИНА ===
