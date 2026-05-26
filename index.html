@@ -407,7 +407,7 @@ function normalizePhones() {
     document.getElementById('phoneResultCard').style.display = 'block';
     document.getElementById('phoneStats').innerHTML = `
         <div class="stat-item"><span class="label">Всего:</span><span class="value blue">${phones.length}</span></div>
-        <div class="stat-item"><span class="label">🇺🇦 UA:</span><span class="value" style="color:var(--accent-blue)">${uaPhones.length}</span></div>
+        <div class="stat-item"><span class="label">UA:</span><span class="value" style="color:var(--accent-blue)">${uaPhones.length}</span></div>
         <div class="stat-item"><span class="label">🇷🇺 ПИДОРСКИЙ:</span><span class="value" style="color:var(--accent-red)">${ruPhones.length}</span></div>
         ${otherPhones.length > 0 ? `<div class="stat-item"><span class="label">🌍 Другие:</span><span class="value orange">${otherPhones.length}</span></div>` : ''}
     `;
