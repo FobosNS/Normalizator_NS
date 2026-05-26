@@ -377,18 +377,19 @@ function normalizePhones() {
 
     let phones = [];
 
-    // Разбиваем текст по всем символам, которые НЕ могут быть частью номера
-    // Это автоматически отсекает лишний текст, цифры до/после и оставляет только телефонные блоки
-    const candidates = raw.split(/[^+\d\s\-\(\)]+/);
+    // Извлекаем ВСЕ потенциальные телефонные блоки:
+    // последовательности из цифр, +, -, (, ), пробелов
+    // Это находит номера даже если они в одной строке: "текст +38067... и 7916..."
+    const candidates = raw.match(/[+\d\s\-\(\)]+/g) || [];
 
     candidates.forEach(token => {
         token = token.trim();
         if (!token) return;
         
-        // Оставляем только цифры
+        // Оставляем только цифры для валидации
         let digits = token.replace(/[^\d]/g, '');
         
-        // Фильтр по длине (реальные UA/RU номера: 10-13 цифр)
+        // Фильтр по длине: реальные UA (12) / RU (11) номера + небольшие вариации
         if (digits.length < 10 || digits.length > 13) return;
         
         let normalized = normalizePhone(digits);
@@ -408,7 +409,7 @@ function normalizePhones() {
     document.getElementById('phoneStats').innerHTML = `
         <div class="stat-item"><span class="label">Всего:</span><span class="value blue">${phones.length}</span></div>
         <div class="stat-item"><span class="label">UA:</span><span class="value" style="color:var(--accent-blue)">${uaPhones.length}</span></div>
-        <div class="stat-item"><span class="label">🇷🇺 ПИДОРСКИЙ:</span><span class="value" style="color:var(--accent-red)">${ruPhones.length}</span></div>
+        <div class="stat-item"><span class="label">🇷🇺 RU:</span><span class="value" style="color:var(--accent-red)">${ruPhones.length}</span></div>
         ${otherPhones.length > 0 ? `<div class="stat-item"><span class="label">🌍 Другие:</span><span class="value orange">${otherPhones.length}</span></div>` : ''}
     `;
 
